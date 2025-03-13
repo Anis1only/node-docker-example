@@ -12,8 +12,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image from the Dockerfile in the repo
-                    sh 'docker build -t anismullani/node-docker-example:${BRANCH_NAME}-${BUILD_ID} .'
+                    // Fix for empty BRANCH_NAME, set default if not provided
+                    def imageTag = "${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
+                    // Build Docker image with proper tag format
+                    sh "docker build -t anismullani/node-docker-example:${imageTag} ."
                 }
             }
         }
@@ -22,7 +24,7 @@ pipeline {
             steps {
                 script {
                     // Run tests inside the Docker container
-                    sh 'docker run --rm anismullani/node-docker-example:${BRANCH_NAME}-${BUILD_ID} npm test'
+                    sh "docker run --rm anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID} npm test"
                 }
             }
         }
@@ -32,6 +34,7 @@ pipeline {
                 script {
                     // Login to Docker Hub using Jenkins credentials
                     withCredentials([usernamePassword(credentialsId: 'docker-credentials-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        // Use the credentials in the Docker login command
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                     }
                 }
@@ -42,7 +45,7 @@ pipeline {
             steps {
                 script {
                     // Push the Docker image to Docker Hub
-                    sh 'docker push anismullani/node-docker-example:${BRANCH_NAME}-${BUILD_ID}'
+                    sh "docker push anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
                 }
             }
         }
@@ -51,8 +54,7 @@ pipeline {
             steps {
                 script {
                     // Deploy Docker container to a staging environment
-                    // Example: Running Docker container on the staging server
-                    sh 'docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${BRANCH_NAME}-${BUILD_ID}'
+                    sh "docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
                 }
             }
         }
