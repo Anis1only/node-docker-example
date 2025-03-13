@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        // Fallback if BRANCH_NAME is not available, using 'master' or 'default'
+        IMAGE_TAG = "${env.GIT_BRANCH ?: 'master'}-${env.BUILD_ID}"
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
@@ -12,10 +17,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Fix for empty BRANCH_NAME, set default if not provided
-                    def imageTag = "${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
-                    // Build Docker image with proper tag format
-                    sh "docker build -t anismullani/node-docker-example:${imageTag} ."
+                    // Build Docker image using the IMAGE_TAG variable
+                    sh "docker build -t anismullani/node-docker-example:${env.IMAGE_TAG} ."
                 }
             }
         }
@@ -24,7 +27,7 @@ pipeline {
             steps {
                 script {
                     // Run tests inside the Docker container
-                    sh "docker run --rm anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID} npm test"
+                    sh "docker run --rm anismullani/node-docker-example:${env.IMAGE_TAG} npm test"
                 }
             }
         }
@@ -34,7 +37,6 @@ pipeline {
                 script {
                     // Login to Docker Hub using Jenkins credentials
                     withCredentials([usernamePassword(credentialsId: 'docker-credentials-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        // Use the credentials in the Docker login command
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                     }
                 }
@@ -45,7 +47,7 @@ pipeline {
             steps {
                 script {
                     // Push the Docker image to Docker Hub
-                    sh "docker push anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
+                    sh "docker push anismullani/node-docker-example:${env.IMAGE_TAG}"
                 }
             }
         }
@@ -54,7 +56,7 @@ pipeline {
             steps {
                 script {
                     // Deploy Docker container to a staging environment
-                    sh "docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${BRANCH_NAME ?: 'default'}-${BUILD_ID}"
+                    sh "docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${env.IMAGE_TAG}"
                 }
             }
         }
