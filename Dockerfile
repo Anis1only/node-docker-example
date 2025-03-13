@@ -1,15 +1,19 @@
-FROM node:12.2
+FROM node:16
 
-ENV HOME=/home/app
+# Set working directory
+WORKDIR /home/app
 
-RUN apt-get update && apt-get install htop
+# Install dependencies
+RUN apt-get update && apt-get install -y htop
 
-COPY package.json package-lock.json $HOME/node_docker/
+# Copy application code
+COPY . .
 
-WORKDIR $HOME/node_docker
+# Install Node.js dependencies
+RUN npm install
 
-RUN npm install --silent --progress=false
+# Expose the application port
+EXPOSE 8080
 
-COPY . $HOME/node_docker
-
+# Start the application
 CMD ["npm", "start"]
