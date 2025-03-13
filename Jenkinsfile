@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // Fallback if BRANCH_NAME is not available, using 'master' or 'default'
-        IMAGE_TAG = "${env.GIT_BRANCH ?: 'master'}-${env.BUILD_ID}"
-    }
-
     stages {
         stage('Checkout Code') {
             steps {
@@ -17,8 +12,12 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image using the IMAGE_TAG variable
-                    sh "docker build -t anismullani/node-docker-example:${env.IMAGE_TAG} ."
+                    // Strip the 'origin/' prefix if it exists and get the branch name
+                    def branchName = env.GIT_BRANCH.replaceFirst("origin/", "")
+                    // Generate image tag using the branch name and build ID
+                    def imageTag = "${branchName}-${env.BUILD_ID}"
+                    // Build Docker image using the generated tag
+                    sh "docker build -t anismullani/node-docker-example:${imageTag} ."
                 }
             }
         }
@@ -26,8 +25,12 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
+                    // Strip the 'origin/' prefix if it exists and get the branch name
+                    def branchName = env.GIT_BRANCH.replaceFirst("origin/", "")
+                    // Generate image tag using the branch name and build ID
+                    def imageTag = "${branchName}-${env.BUILD_ID}"
                     // Run tests inside the Docker container
-                    sh "docker run --rm anismullani/node-docker-example:${env.IMAGE_TAG} npm test"
+                    sh "docker run --rm anismullani/node-docker-example:${imageTag} npm test"
                 }
             }
         }
@@ -46,8 +49,12 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
+                    // Strip the 'origin/' prefix if it exists and get the branch name
+                    def branchName = env.GIT_BRANCH.replaceFirst("origin/", "")
+                    // Generate image tag using the branch name and build ID
+                    def imageTag = "${branchName}-${env.BUILD_ID}"
                     // Push the Docker image to Docker Hub
-                    sh "docker push anismullani/node-docker-example:${env.IMAGE_TAG}"
+                    sh "docker push anismullani/node-docker-example:${imageTag}"
                 }
             }
         }
@@ -55,8 +62,12 @@ pipeline {
         stage('Deploy to Staging') {
             steps {
                 script {
+                    // Strip the 'origin/' prefix if it exists and get the branch name
+                    def branchName = env.GIT_BRANCH.replaceFirst("origin/", "")
+                    // Generate image tag using the branch name and build ID
+                    def imageTag = "${branchName}-${env.BUILD_ID}"
                     // Deploy Docker container to a staging environment
-                    sh "docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${env.IMAGE_TAG}"
+                    sh "docker run -d --name node-docker-app -p 8080:8080 anismullani/node-docker-example:${imageTag}"
                 }
             }
         }
@@ -75,3 +86,4 @@ pipeline {
         }
     }
 }
+
